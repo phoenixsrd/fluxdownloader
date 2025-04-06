@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import yt_dlp
-import uuid
 import os
 
 app = Flask(__name__)
@@ -80,6 +79,3 @@ def download_mp3():
 
     except Exception as e:
         return f'Erro: {str(e)}', 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
