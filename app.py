@@ -1,7 +1,10 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import yt_dlp
+import requests
 import os
+
+os.environ['PATH'] += os.pathsep + '/usr/bin'
 
 app = Flask(__name__)
 CORS(app)
@@ -18,8 +21,10 @@ def js():
 def get_formats():
     data = request.get_json()
     url = data.get('url')
+    type_ = data.get('type')
+
     if not url:
-        return jsonify({'error': 'URL Ausente'})
+        return jsonify({'error': 'URL ausente'})
 
     ydl_opts = {
         'quiet': True,
@@ -29,53 +34,59 @@ def get_formats():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            entries = info['entries'] if 'entries' in info else [info]
+            results = []
 
-            if 'entries' in info:
-                info = info['entries'][0]
-
-            formats = []
-            for f in info.get('formats', []):
-                if f.get('url') and f.get('ext'):
-                    formats.append({
-                        'format_id': f.get('format_id'),
-                        'format_note': f.get('format_note'),
-                        'ext': f.get('ext'),
-                        'url': f.get('url'),
-                        'resolution': f.get('resolution')
-                    })
-
-            videoInfo = {
-                'title': info.get('title'),
-                'thumbnail': info.get('thumbnail'),
-                'duration': f"{int(info.get('duration', 0) // 60)}min"
-            }
-
-            return jsonify({'formats': formats, 'videoInfo': videoInfo})
+            for entry in entries:
+                formats = []
+                for f in entry.get('formats', []):
+                    if f.get('url') and f.get('ext'):
+                        if type_ == 'audio' and f.get('vcodec') == 'none':
+                            formats.append({
+                                'format_id': f.get('format_id'),
+                                'ext': f.get('ext'),
+                                'abr': f.get('abr', ''),
+                                'url': f.get('url'),
+                            })
+                        elif type_ == 'video' and f.get('vcodec') != 'none':
+                            formats.append({
+                                'format_id': f.get('format_id'),
+                                'ext': f.get('ext'),
+                                'resolution': f.get('resolution') or f.get('height'),
+                                'fps': f.get('fps', ''),
+                                'url': f.get('url'),
+                            })
+                results.append({
+                    'title': entry.get('title'),
+                    'thumbnail': entry.get('thumbnail'),
+                    'duration': f"{int(entry.get('duration', 0) // 60)}min",
+                    'formats': formats
+                })
+            return jsonify({'results': results})
     except Exception as e:
         return jsonify({'error': str(e)})
 
-@app.route('/download-mp3')
-def download_mp3():
+@app.route('/download')
+def proxy_download():
     url = request.args.get('url')
+    title = request.args.get('title', 'download')
+    ext = request.args.get('ext', 'mp4')
+
     if not url:
-        return 'URL Ausente', 400
-
+        return 'URL Inválida', 400
     try:
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': '/tmp/%(title)s.%(ext)s',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'quiet': True,
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            mp3_file = ydl.prepare_filename(info).rsplit('.', 1)[0] + '.mp3'
-            return send_file(mp3_file, as_attachment=True)
-
+        r = requests.get(url, stream=True)
+        filename = f"{title}.{ext}".replace(' ', '_').replace('/', '_').replace('?', '')
+        return Response(
+            r.iter_content(chunk_size=8192),
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/octet-stream"
+            }
+        )
     except Exception as e:
-        return f'Erro: {str(e)}', 500
+        return f'Erro No Download: {str(e)}', 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run
