@@ -1,38 +1,21 @@
-async function getFormats() {
-  const url = document.getElementById("url").value;
-  const mode = document.getElementById("mode").value;
-  const res = await fetch("/get-formats", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, mode }),
-  });
+const urlInput = document.querySelector('input[name="url"]');
+const tipoInput = document.querySelector('#tipo');
+const formatSelect = document.querySelector('#format_id');
 
-  const data = await res.json();
-  const select = document.getElementById("quality");
-  select.innerHTML = "";
+urlInput.addEventListener('change', loadFormats);
+tipoInput.addEventListener('change', loadFormats);
 
-  data.forEach(f => {
-    const size = (f.filesize / (1024 * 1024)).toFixed(1);
-    const label = `${f.resolution} (${size} MB)`;
-    const option = new Option(label, f.format_id);
-    select.add(option);
-  });
-}
-
-async function download() {
-  const url = document.getElementById("url").value;
-  const format_id = document.getElementById("quality").value;
-  const mode = document.getElementById("mode").value;
-
-  const res = await fetch("/download", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, format_id, mode }),
-  });
-
-  const blob = await res.blob();
-  const a = document.createElement("a");
-  a.href = window.URL.createObjectURL(blob);
-  a.download = mode === "audio" ? "audio.mp3" : "video.mp4";
-  a.click();
+async function loadFormats() {
+    formatSelect.innerHTML = '';
+    if (!urlInput.value) return;
+    const res = await fetch(`/formats?url=${encodeURIComponent(urlInput.value)}`);
+    const data = await res.json();
+    const tipo = tipoInput.value;
+    const list = tipo === "Video" ? data.audio : data.video;
+    list.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.format_id;
+        opt.textContent = tipo === "Audio" ? `${f.abr}kbps - ${f.ext}` : `${f.resolution} - ${f.ext}`;
+        formatSelect.appendChild(opt);
+    });
 }

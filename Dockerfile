@@ -1,16 +1,13 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y ffmpeg curl && \
+    apt-get clean
 
 WORKDIR /app
-
-COPY . /app
+COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 8080
-
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080"]
+ENV PORT=5000
+CMD ["python", "app.py"]

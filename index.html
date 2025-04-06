@@ -1,51 +1,25 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Flux Downloader</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
-    }
-    h1 {
-      color: #38bdf8;
-    }
-    input, select, button {
-      padding: 0.6rem;
-      margin: 0.5rem;
-      border: none;
-      border-radius: 8px;
-    }
-    button {
-      background: #22d3ee;
-      color: #0f172a;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .formats {
-      margin-top: 1rem;
-    }
-  </style>
+    <title>Flux Downloader</title>
+    <style>
+        body { font-family: Arial; background: #111; color: #fff; text-align: center; padding: 40px; }
+        input, select, button { padding: 10px; margin: 10px; border: none; border-radius: 8px; }
+        select { width: 300px; }
+        button { background: #1a73e8; color: white; cursor: pointer; }
+    </style>
 </head>
 <body>
-  <h1>Flux Downloader</h1>
-  <input type="text" id="url" placeholder="Cole A Url Do Youtube Aqui" size="50" />
-  <select id="mode">
-    <option value="video">Vídeo</option>
-    <option value="audio">Áudio</option>
-  </select>
-  <button onclick="getFormats()">Qualidades Disponíveis</button>
-  <div class="formats">
-    <select id="quality"></select>
-    <button onclick="download()">Baixar</button>
-  </div>
-
-  <script src="script.js"></script>
+    <h1>Flux Downloader</h1>
+    <form method="POST">
+        <input type="text" name="url" placeholder="Cole A Url Do Youtube" required>
+        <select name="tipo" id="tipo">
+            <option value="video">Vídeo</option>
+            <option value="audio">Áudio</option>
+        </select>
+        <select name="format_id" id="format_id"></select>
+        <button type="submit">Baixar</button>
+    </form>
+    <script src="script.js"></script>
 </body>
 </html>
