@@ -1,5 +1,3 @@
-let allFormats = [];
-
 async function getInfo() {
   const url = document.getElementById("url").value;
   const res = await fetch("/get_info", {
@@ -11,23 +9,11 @@ async function getInfo() {
   const data = await res.json();
   document.getElementById("title").textContent = data.title;
   document.getElementById("thumb").src = data.thumbnail;
-  allFormats = data.formats;
-  updateFormats();
-  document.getElementById("info").style.display = "block";
-}
 
-function updateFormats() {
-  const type = document.getElementById("type").value;
   const formatSelect = document.getElementById("format");
   formatSelect.innerHTML = "";
 
-  const filtered = allFormats.filter((f) =>
-    type === "video"
-      ? f.has_video && f.has_audio
-      : !f.has_video && f.has_audio
-  );
-
-  filtered.forEach((f) => {
+  data.formats.forEach((f) => {
     const opt = document.createElement("option");
     const res = f.resolution || "Áudio";
     const size = f.filesize ? (f.filesize / 1048576).toFixed(1) + "MB" : "";
@@ -35,6 +21,8 @@ function updateFormats() {
     opt.text = `${res} - ${f.ext} ${size}`;
     formatSelect.appendChild(opt);
   });
+
+  document.getElementById("info").style.display = "block";
 }
 
 async function download() {
