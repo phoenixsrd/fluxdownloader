@@ -7,49 +7,43 @@
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #0f172a;
-      color: #e2e8f0;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 2rem;
-      text-align: center;
+    }
+    h1 {
+      color: #38bdf8;
     }
     input, select, button {
-      padding: 0.5rem;
+      padding: 0.6rem;
       margin: 0.5rem;
-      border-radius: 8px;
       border: none;
-      font-size: 1rem;
+      border-radius: 8px;
     }
     button {
-      background: #1e40af;
-      color: white;
+      background: #22d3ee;
+      color: #0f172a;
       cursor: pointer;
+      font-weight: bold;
     }
-    img {
-      max-width: 300px;
-      margin: 1rem 0;
-      border-radius: 1rem;
+    .formats {
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <h1>Flux Downloader</h1>
-  <input id="url" placeholder="Cole O Link Do Youtube Aqui" size="50" />
-  <button onclick="getInfo()">Buscar</button>
-
-  <div id="info" style="display:none">
-    <h2 id="title"></h2>
-    <img id="thumb" />
-    <br />
-    <select id="type" onchange="updateFormats()">
-      <option value="video">Vídeo</option>
-      <option value="audio">Áudio</option>
-    </select>
-    <br />
-    <select id="format"></select>
-    <br />
-    <label><input type="checkbox" id="convert_mp3" /> Converter Para MP3</label>
-    <br />
+  <input type="text" id="url" placeholder="Cole A Url Do Youtube Aqui" size="50" />
+  <select id="mode">
+    <option value="video">Vídeo</option>
+    <option value="audio">Áudio</option>
+  </select>
+  <button onclick="getFormats()">Qualidades Disponíveis</button>
+  <div class="formats">
+    <select id="quality"></select>
     <button onclick="download()">Baixar</button>
-    <button onclick="downloadPlaylist()">Baixar Playlist</button>
   </div>
 
   <script src="script.js"></script>
