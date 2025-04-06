@@ -1,71 +1,91 @@
-import os
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import yt_dlp
-import uuid
+import requests
+import os
+
+os.environ['PATH'] += os.pathsep + '/usr/bin'
 
 app = Flask(__name__)
 CORS(app)
 
-DOWNLOAD_DIR = "downloads"
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
-@app.route('/get_info', methods=['POST'])
-def get_info():
+@app.route('/script.js')
+def js():
+    return send_from_directory('.', 'script.js')
+
+@app.route('/formats', methods=['POST'])
+def get_formats():
     data = request.get_json()
     url = data.get('url')
+    type_ = data.get('type')
 
-    ydl_opts = {'quiet': True}
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-
-        formats = [
-            {
-                "format_id": f["format_id"],
-                "ext": f["ext"],
-                "resolution": f.get("resolution") or f.get("height", "audio"),
-                "filesize": f.get("filesize") or f.get("filesize_approx"),
-                "acodec": f.get("acodec"),
-                "vcodec": f.get("vcodec"),
-                "has_audio": f.get("acodec") != "none",
-                "has_video": f.get("vcodec") != "none"
-            }
-            for f in info.get("formats", [])
-            if f.get("acodec") != "none"
-        ]
-
-        return jsonify({
-            "title": info.get("title"),
-            "thumbnail": info.get("thumbnail"),
-            "formats": formats
-        })
-
-@app.route('/download', methods=['POST'])
-def download():
-    data = request.get_json()
-    url = data.get('url')
-    format_id = data.get('format_id')
-
-    filename = f"{uuid.uuid4()}.%(ext)s"
-    output_path = os.path.join(DOWNLOAD_DIR, filename)
+    if not url:
+        return jsonify({'error': 'URL ausente'})
 
     ydl_opts = {
-        'format': format_id,
-        'outtmpl': output_path,
         'quiet': True,
-        'merge_output_format': 'mp4',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3' if 'audio' in format_id else 'mp4',
-            'preferredquality': '192',
-        }],
+        'extract_flat': False
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        final_file = ydl.prepare_filename(info).replace("%(ext)s", info.get("ext"))
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            entries = info['entries'] if 'entries' in info else [info]
+            results = []
 
-    return send_file(final_file, as_attachment=True)
+            for entry in entries:
+                formats = []
+                for f in entry.get('formats', []):
+                    if f.get('url') and f.get('ext'):
+                        if type_ == 'audio' and f.get('vcodec') == 'none':
+                            formats.append({
+                                'format_id': f.get('format_id'),
+                                'ext': f.get('ext'),
+                                'abr': f.get('abr', ''),
+                                'url': f.get('url'),
+                            })
+                        elif type_ == 'video' and f.get('vcodec') != 'none':
+                            formats.append({
+                                'format_id': f.get('format_id'),
+                                'ext': f.get('ext'),
+                                'resolution': f.get('resolution') or f.get('height'),
+                                'fps': f.get('fps', ''),
+                                'url': f.get('url'),
+                            })
+                results.append({
+                    'title': entry.get('title'),
+                    'thumbnail': entry.get('thumbnail'),
+                    'duration': f"{int(entry.get('duration', 0) // 60)}min",
+                    'formats': formats
+                })
+            return jsonify({'results': results})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/download')
+def proxy_download():
+    url = request.args.get('url')
+    title = request.args.get('title', 'download')
+    ext = request.args.get('ext', 'mp4')
+
+    if not url:
+        return 'URL Inválida', 400
+    try:
+        r = requests.get(url, stream=True)
+        filename = f"{title}.{ext}".replace(' ', '_').replace('/', '_').replace('?', '')
+        return Response(
+            r.iter_content(chunk_size=8192),
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/octet-stream"
+            }
+        )
+    except Exception as e:
+        return f'Erro no download: {str(e)}', 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

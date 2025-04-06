@@ -1,48 +1,58 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Flux Downloader</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: sans-serif;
       background: #0f172a;
-      color: #e2e8f0;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 2rem;
-      text-align: center;
+    }
+    h1 {
+      color: #60a5fa;
     }
     input, select, button {
-      padding: 0.5rem;
+      padding: 0.6rem;
       margin: 0.5rem;
       border-radius: 8px;
       border: none;
-      font-size: 1rem;
+      font-size: 16px;
     }
     button {
-      background: #1e40af;
+      background-color: #2563eb;
       color: white;
       cursor: pointer;
     }
+    button:hover {
+      background-color: #1e40af;
+    }
+    #preview {
+      margin-top: 1rem;
+      text-align: center;
+    }
     img {
-      max-width: 300px;
-      margin: 1rem 0;
-      border-radius: 1rem;
+      max-width: 200px;
+      border-radius: 12px;
     }
   </style>
 </head>
 <body>
   <h1>Flux Downloader</h1>
-  <input id="url" placeholder="Cole O Link Do Youtube Aqui" size="50" />
-  <button onclick="getInfo()">Buscar</button>
-
-  <div id="info" style="display:none">
-    <h2 id="title"></h2>
-    <img id="thumb" />
-    <br />
-    <select id="format"></select>
-    <br />
-    <button onclick="download()">Baixar</button>
-  </div>
+  <input type="text" id="url" placeholder="Cole O Link Do Vídeo Do Youtube Aqui" size="50" />
+  <select id="type">
+    <option value="video">Vídeo</option>
+    <option value="audio">Áudio (MP3)</option>
+  </select>
+  <button id="fetch">Qualidades Disponíveis</button>
+  
+  <div id="preview"></div>
+  <select id="quality" style="display:none;"></select>
+  <button id="download" style="display:none;">Download</button>
 
   <script src="script.js"></script>
 </body>
