@@ -25,7 +25,7 @@ document.getElementById('fetch').onclick = async () => {
 
   info.formats.forEach(f => {
     const opt = document.createElement('option');
-    opt.value = JSON.stringify(f);
+    opt.value = f.url;
     opt.textContent = type === 'audio'
       ? `${f.ext} - ${f.abr || '??'}kbps`
       : `${f.ext} - ${f.resolution || '??'}p`;
@@ -34,12 +34,9 @@ document.getElementById('fetch').onclick = async () => {
 
   quality.style.display = 'inline-block';
   document.getElementById('download').style.display = 'inline-block';
-  preview.dataset.title = info.title;
 };
 
 document.getElementById('download').onclick = () => {
-  const selected = JSON.parse(document.getElementById('quality').value);
-  const title = document.getElementById('preview').dataset.title || 'video';
-  const url = `/download?url=${encodeURIComponent(selected.url)}&title=${encodeURIComponent(title)}&ext=${selected.ext}`;
+  const url = document.getElementById('quality').value;
   window.open(url, '_blank');
 };
