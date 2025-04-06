@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import yt_dlp
+import requests
 import os
 
 os.environ['PATH'] += os.pathsep + '/usr/bin'
@@ -16,22 +17,13 @@ def index():
 def js():
     return send_from_directory('.', 'script.js')
 
-@app.route('for f in entry.get('formats', []):
-    if f.get('url') and f.get('ext') and f.get('acodec') != 'none':
-        formats.append({
-            'format_id': f.get('format_id'),
-            'ext': f.get('ext'),
-            'resolution': f.get('resolution') or f.get('height'),
-            'abr': f.get('abr', ''),
-            'url': f.get('url'),
-        })', methods=['POST'])
+@app.route('/formats', methods=['POST'])
 def get_formats():
     data = request.get_json()
     url = data.get('url')
-    type_ = data.get('type')
 
     if not url:
-        return jsonify({'error': 'URL ausente'})
+        return jsonify({'error': 'Url Ausente'})
 
     ydl_opts = {
         'quiet': True,
@@ -41,39 +33,56 @@ def get_formats():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            entry = info['entries'][0] if 'entries' in info else info
-            formats = []
+            entries = info['entries'] if 'entries' in info else [info]
+            results = []
 
-            for f in entry.get('formats', []):
-                if f.get('url') and f.get('ext'):
-                    if type_ == 'audio' and f.get('vcodec') == 'none':
+            for entry in entries:
+                formats = []
+                for f in entry.get('formats', []):
+                    if f.get('url') and f.get('ext') and f.get('acodec') != 'none':
+                        resolution = f.get('resolution') or f.get('height')
+                        resolution = str(resolution) if resolution else ''
                         formats.append({
                             'format_id': f.get('format_id'),
                             'ext': f.get('ext'),
+                            'resolution': resolution,
                             'abr': f.get('abr', ''),
                             'url': f.get('url'),
                         })
-                    elif type_ == 'video' and f.get('vcodec') != 'none' and f.get('acodec') != 'none':
-                        formats.append({
-                            'format_id': f.get('format_id'),
-                            'ext': f.get('ext'),
-                            'resolution': f.get('resolution') or f.get('height'),
-                            'fps': f.get('fps', ''),
-                            'url': f.get('url'),
-                        })
 
-            formats.sort(key=lambda x: int(x.get('abr', 0) if type_ == 'audio' else x.get('resolution', 0)), reverse=True)
+                # ordena da maior resolução para a menor
+                formats.sort(key=lambda x: int(x['resolution'].replace('p', '') or 0), reverse=True)
 
-            return jsonify({
-                'results': [{
+                results.append({
                     'title': entry.get('title'),
                     'thumbnail': entry.get('thumbnail'),
                     'duration': f"{int(entry.get('duration', 0) // 60)}min",
                     'formats': formats
-                }]
-            })
+                })
+            return jsonify({'results': results})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route('/download')
+def proxy_download():
+    url = request.args.get('url')
+    title = request.args.get('title', 'download')
+    ext = request.args.get('ext', 'mp4')
+
+    if not url:
+        return 'Url Inválida', 400
+    try:
+        r = requests.get(url, stream=True)
+        filename = f"{title}.{ext}".replace(' ', '_').replace('/', '_').replace('?', '')
+        return Response(
+            r.iter_content(chunk_size=8192),
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/octet-stream"
+            }
+        )
+    except Exception as e:
+        return f'Erro No Download: {str(e)}', 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -1,19 +1,21 @@
 const urlInput = document.getElementById('url');
+const quality = document.getElementById('quality');
+const preview = document.getElementById('preview');
+const downloadBtn = document.getElementById('download');
 
-async function fetchFormats() {
+urlInput.addEventListener('input', async () => {
   const url = urlInput.value.trim();
-  const quality = document.getElementById('quality');
-  const preview = document.getElementById('preview');
+  if (!url.includes('http')) return;
+
   quality.innerHTML = '';
   preview.innerHTML = '';
   quality.style.display = 'none';
-
-  if (!url) return;
+  downloadBtn.style.display = 'none';
 
   const res = await fetch('/formats', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url })
+    body: JSON.stringify({ url, type: 'video' })
   });
 
   const data = await res.json();
@@ -26,30 +28,29 @@ async function fetchFormats() {
     <p>Duração: ${info.duration}</p>
   `;
 
-  const sortedFormats = info.formats.sort((a, b) => {
-    const aRes = parseInt(a.resolution) || 0;
-    const bRes = parseInt(b.resolution) || 0;
-    return bRes - aRes;
-  });
+  const sorted = info.formats
+    .filter(f => f.url)
+    .sort((a, b) => {
+      const resA = parseInt((a.resolution || '').replace('p', '')) || 0;
+      const resB = parseInt((b.resolution || '').replace('p', '')) || 0;
+      return resB - resA;
+    });
 
-  sortedFormats.forEach(f => {
+  sorted.forEach(f => {
     const opt = document.createElement('option');
-    opt.value = f.url;
-    opt.textContent = f.resolution ? `${f.ext} - ${f.resolution}` : `${f.ext} - ${f.abr || '??'}kbps`;
+    opt.value = JSON.stringify(f);
+    opt.textContent = `${f.ext} - ${f.resolution || '??'}p`;
     quality.appendChild(opt);
   });
 
   quality.style.display = 'inline-block';
-  document.getElementById('download').style.display = 'inline-block';
-}
-
-let timeout;
-urlInput.addEventListener('input', () => {
-  clearTimeout(timeout);
-  timeout = setTimeout(fetchFormats, 800);
+  downloadBtn.style.display = 'inline-block';
+  preview.dataset.title = info.title;
 });
 
-document.getElementById('download').onclick = () => {
-  const url = document.getElementById('quality').value;
+downloadBtn.onclick = () => {
+  const selected = JSON.parse(quality.value);
+  const title = preview.dataset.title || 'video';
+  const url = `/download?url=${encodeURIComponent(selected.url)}&title=${encodeURIComponent(title)}&ext=${selected.ext}`;
   window.open(url, '_blank');
 };
