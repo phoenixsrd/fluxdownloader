@@ -1,58 +1,56 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Flux Downloader</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background: #0f172a;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      color: #e2e8f0;
       padding: 2rem;
-    }
-    h1 {
-      color: #60a5fa;
+      text-align: center;
     }
     input, select, button {
-      padding: 0.6rem;
+      padding: 0.5rem;
       margin: 0.5rem;
       border-radius: 8px;
       border: none;
-      font-size: 16px;
+      font-size: 1rem;
     }
     button {
-      background-color: #2563eb;
+      background: #1e40af;
       color: white;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #1e40af;
-    }
-    #preview {
-      margin-top: 1rem;
-      text-align: center;
-    }
     img {
-      max-width: 200px;
-      border-radius: 12px;
+      max-width: 300px;
+      margin: 1rem 0;
+      border-radius: 1rem;
     }
   </style>
 </head>
 <body>
   <h1>Flux Downloader</h1>
-  <input type="text" id="url" placeholder="Cole O Link Do Vídeo Do YouTube Aqui" size="50" />
-  <select id="type">
-    <option value="video">Vídeo</option>
-    <option value="audio">Áudio (MP3)</option>
-  </select>
-  <button id="fetch">Qualidades Disponíveis</button>
-  
-  <div id="preview"></div>
-  <select id="quality" style="display:none;"></select>
-  <button id="download" style="display:none;">Download</button>
+  <input id="url" placeholder="Cole O Link Do Youtube Aqui" size="50" />
+  <button onclick="getInfo()">Buscar</button>
+
+  <div id="info" style="display:none">
+    <h2 id="title"></h2>
+    <img id="thumb" />
+    <br />
+    <select id="type" onchange="updateFormats()">
+      <option value="video">Vídeo</option>
+      <option value="audio">Áudio</option>
+    </select>
+    <br />
+    <select id="format"></select>
+    <br />
+    <label><input type="checkbox" id="convert_mp3" /> Converter Para MP3</label>
+    <br />
+    <button onclick="download()">Baixar</button>
+    <button onclick="downloadPlaylist()">Baixar Playlist</button>
+  </div>
 
   <script src="script.js"></script>
 </body>

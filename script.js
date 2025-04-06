@@ -1,45 +1,75 @@
-document.getElementById('fetch').onclick = async () => {
-  const url = document.getElementById('url').value;
-  const type = document.getElementById('type').value;
-  const quality = document.getElementById('quality');
-  const preview = document.getElementById('preview');
-  quality.innerHTML = '';
-  preview.innerHTML = '';
-  quality.style.display = 'none';
+let allFormats = [];
 
-  const res = await fetch('/formats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, type })
+async function getInfo() {
+  const url = document.getElementById("url").value;
+  const res = await fetch("/get_info", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
   });
 
   const data = await res.json();
-  if (data.error) return alert(data.error);
+  document.getElementById("title").textContent = data.title;
+  document.getElementById("thumb").src = data.thumbnail;
+  allFormats = data.formats;
+  updateFormats();
+  document.getElementById("info").style.display = "block";
+}
 
-  const info = data.results[0];
-  preview.innerHTML = `
-    <h3>${info.title}</h3>
-    <img src="${info.thumbnail}" />
-    <p>Duração: ${info.duration}</p>
-  `;
+function updateFormats() {
+  const type = document.getElementById("type").value;
+  const formatSelect = document.getElementById("format");
+  formatSelect.innerHTML = "";
 
-  info.formats.forEach(f => {
-    const opt = document.createElement('option');
-    opt.value = JSON.stringify(f);
-    opt.textContent = type === 'audio'
-      ? `${f.ext} - ${f.abr || '??'}kbps`
-      : `${f.ext} - ${f.resolution || '??'}p`;
-    quality.appendChild(opt);
+  let filtered = allFormats.filter((f) =>
+    type === "Video"
+      ? f.has_video && f.has_audio
+      : !f.has_video && f.has_audio
+  );
+
+  filtered.sort((a, b) => (b.height || 0) - (a.height || 0));
+
+  filtered.forEach((f) => {
+    const opt = document.createElement("option");
+    const res = f.resolution || "Áudio";
+    const size = f.filesize ? (f.filesize / 1048576).toFixed(1) + "MB" : "";
+    opt.value = f.format_id;
+    opt.text = `${res} - ${f.ext} ${size}`;
+    formatSelect.appendChild(opt);
+  });
+}
+
+async function download() {
+  const url = document.getElementById("url").value;
+  const format_id = document.getElementById("format").value;
+  const convert_mp3 = document.getElementById("convert_mp3").checked;
+
+  const res = await fetch("/download", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, format_id, convert_mp3 }),
   });
 
-  quality.style.display = 'inline-block';
-  document.getElementById('download').style.display = 'inline-block';
-  preview.dataset.title = info.title;
-};
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "flux-download";
+  a.click();
+}
 
-document.getElementById('download').onclick = () => {
-  const selected = JSON.parse(document.getElementById('quality').value);
-  const title = document.getElementById('preview').dataset.title || 'video';
-  const url = `/download?url=${encodeURIComponent(selected.url)}&title=${encodeURIComponent(title)}&ext=${selected.ext}`;
-  window.open(url, '_blank');
-};
+async function downloadPlaylist() {
+  const url = document.getElementById("url").value;
+  const convert_mp3 = document.getElementById("convert_mp3").checked;
+
+  const res = await fetch("/download_playlist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, convert_mp3 }),
+  });
+
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "flux-playlist.zip";
+  a.click();
+}
