@@ -5,9 +5,11 @@ RUN apt-get update && \
     apt-get clean
 
 WORKDIR /app
+
 COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 ENV PORT=5000
+
 CMD ["python", "app.py"]
