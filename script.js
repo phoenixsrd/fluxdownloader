@@ -1,11 +1,16 @@
-document.getElementById('fetch').onclick = async () => {
-  const url = document.getElementById('url').value;
-  const type = document.getElementById('type').value;
+const urlInput = document.getElementById('url');
+const typeInput = document.getElementById('type');
+
+async function fetchFormats() {
+  const url = urlInput.value.trim();
+  const type = typeInput.value;
   const quality = document.getElementById('quality');
   const preview = document.getElementById('preview');
   quality.innerHTML = '';
   preview.innerHTML = '';
   quality.style.display = 'none';
+
+  if (!url) return;
 
   const res = await fetch('/formats', {
     method: 'POST',
@@ -34,7 +39,15 @@ document.getElementById('fetch').onclick = async () => {
 
   quality.style.display = 'inline-block';
   document.getElementById('download').style.display = 'inline-block';
-};
+}
+
+let timeout;
+urlInput.addEventListener('input', () => {
+  clearTimeout(timeout);
+  timeout = setTimeout(fetchFormats, 800);
+});
+
+typeInput.addEventListener('change', fetchFormats);
 
 document.getElementById('download').onclick = () => {
   const url = document.getElementById('quality').value;
