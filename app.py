@@ -1,60 +1,72 @@
-from flask import Flask, request, send_file, jsonify, render_template
+import os
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import yt_dlp
-import os
 import uuid
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        url = request.form['url']
-        tipo = request.form['tipo']
-        format_id = request.form['format_id']
-        filename = f"downloads/{uuid.uuid4()}.%(ext)s"
-        ydl_opts = {
-            'outtmpl': filename,
-            'format': format_id,
-            'quiet': True,
-        }
+DOWNLOAD_DIR = "downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-        if tipo == "audio":
-            ydl_opts['postprocessors'] = [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-            }]
+@app.route('/get_info', methods=['POST'])
+def get_info():
+    data = request.get_json()
+    url = data.get('url')
 
-        os.makedirs("downloads", exist_ok=True)
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            final_path = ydl.prepare_filename(info)
-            if tipo == "audio":
-                final_path = final_path.rsplit('.', 1)[0] + ".mp3"
-        return send_file(final_path, as_attachment=True)
-
-    return render_template('index.html')
-
-@app.route('/formats')
-def formats():
-    url = request.args.get('url')
     ydl_opts = {'quiet': True}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        formats = info.get('formats', [])
-        audio = []
-        video = []
-        for f in formats:
-            if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-                audio.append({'format_id': f['format_id'], 'abr': f.get('abr', '0'), 'ext': f['ext']})
-            elif f.get('acodec') != 'none' and f.get('vcodec') != 'none':
-                video.append({'format_id': f['format_id'], 'resolution': f.get('height', 0), 'ext': f['ext']})
-        audio = sorted(audio, key=lambda x: int(float(x['abr'])), reverse=True)
-        video = sorted(video, key=lambda x: int(x['resolution']), reverse=True)
-        for v in video:
-            v['resolution'] = f"{v['resolution']}p"
-        return jsonify({'audio': audio, 'video': video})
+
+        formats = [
+            {
+                "format_id": f["format_id"],
+                "ext": f["ext"],
+                "resolution": f.get("resolution") or f.get("height", "audio"),
+                "filesize": f.get("filesize") or f.get("filesize_approx"),
+                "acodec": f.get("acodec"),
+                "vcodec": f.get("vcodec"),
+                "has_audio": f.get("acodec") != "none",
+                "has_video": f.get("vcodec") != "none"
+            }
+            for f in info.get("formats", [])
+            if f.get("acodec") != "none"
+        ]
+
+        return jsonify({
+            "title": info.get("title"),
+            "thumbnail": info.get("thumbnail"),
+            "formats": formats
+        })
+
+@app.route('/download', methods=['POST'])
+def download():
+    data = request.get_json()
+    url = data.get('url')
+    format_id = data.get('format_id')
+
+    filename = f"{uuid.uuid4()}.%(ext)s"
+    output_path = os.path.join(DOWNLOAD_DIR, filename)
+
+    ydl_opts = {
+        'format': format_id,
+        'outtmpl': output_path,
+        'quiet': True,
+        'merge_output_format': 'mp4',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3' if 'audio' in format_id else 'mp4',
+            'preferredquality': '192',
+        }],
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        final_file = ydl.prepare_filename(info).replace("%(ext)s", info.get("ext"))
+
+    return send_file(final_file, as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)

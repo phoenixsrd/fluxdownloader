@@ -1,21 +1,55 @@
-const urlInput = document.querySelector('input[name="url"]');
-const tipoInput = document.querySelector('#tipo');
-const formatSelect = document.querySelector('#format_id');
+let allFormats = [];
 
-urlInput.addEventListener('change', loadFormats);
-tipoInput.addEventListener('change', loadFormats);
+async function getInfo() {
+  const url = document.getElementById("url").value;
+  const res = await fetch("/get_info", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
 
-async function loadFormats() {
-    formatSelect.innerHTML = '';
-    if (!urlInput.value) return;
-    const res = await fetch(`/formats?url=${encodeURIComponent(urlInput.value)}`);
-    const data = await res.json();
-    const tipo = tipoInput.value;
-    const list = tipo === "Video" ? data.audio : data.video;
-    list.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.format_id;
-        opt.textContent = tipo === "Audio" ? `${f.abr}kbps - ${f.ext}` : `${f.resolution} - ${f.ext}`;
-        formatSelect.appendChild(opt);
-    });
+  const data = await res.json();
+  document.getElementById("title").textContent = data.title;
+  document.getElementById("thumb").src = data.thumbnail;
+  allFormats = data.formats;
+  updateFormats();
+  document.getElementById("info").style.display = "block";
+}
+
+function updateFormats() {
+  const type = document.getElementById("type").value;
+  const formatSelect = document.getElementById("format");
+  formatSelect.innerHTML = "";
+
+  const filtered = allFormats.filter((f) =>
+    type === "video"
+      ? f.has_video && f.has_audio
+      : !f.has_video && f.has_audio
+  );
+
+  filtered.forEach((f) => {
+    const opt = document.createElement("option");
+    const res = f.resolution || "Áudio";
+    const size = f.filesize ? (f.filesize / 1048576).toFixed(1) + "MB" : "";
+    opt.value = f.format_id;
+    opt.text = `${res} - ${f.ext} ${size}`;
+    formatSelect.appendChild(opt);
+  });
+}
+
+async function download() {
+  const url = document.getElementById("url").value;
+  const format_id = document.getElementById("format").value;
+
+  const res = await fetch("/download", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, format_id }),
+  });
+
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "flux-download";
+  a.click();
 }
