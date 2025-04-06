@@ -16,7 +16,15 @@ def index():
 def js():
     return send_from_directory('.', 'script.js')
 
-@app.route('/formats', methods=['POST'])
+@app.route('for f in entry.get('formats', []):
+    if f.get('url') and f.get('ext') and f.get('acodec') != 'none':
+        formats.append({
+            'format_id': f.get('format_id'),
+            'ext': f.get('ext'),
+            'resolution': f.get('resolution') or f.get('height'),
+            'abr': f.get('abr', ''),
+            'url': f.get('url'),
+        })', methods=['POST'])
 def get_formats():
     data = request.get_json()
     url = data.get('url')

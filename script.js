@@ -1,9 +1,7 @@
 const urlInput = document.getElementById('url');
-const typeInput = document.getElementById('type');
 
 async function fetchFormats() {
   const url = urlInput.value.trim();
-  const type = typeInput.value;
   const quality = document.getElementById('quality');
   const preview = document.getElementById('preview');
   quality.innerHTML = '';
@@ -15,7 +13,7 @@ async function fetchFormats() {
   const res = await fetch('/formats', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, type })
+    body: JSON.stringify({ url })
   });
 
   const data = await res.json();
@@ -28,12 +26,16 @@ async function fetchFormats() {
     <p>Duração: ${info.duration}</p>
   `;
 
-  info.formats.forEach(f => {
+  const sortedFormats = info.formats.sort((a, b) => {
+    const aRes = parseInt(a.resolution) || 0;
+    const bRes = parseInt(b.resolution) || 0;
+    return bRes - aRes;
+  });
+
+  sortedFormats.forEach(f => {
     const opt = document.createElement('option');
     opt.value = f.url;
-    opt.textContent = type === 'audio'
-      ? `${f.ext} - ${f.abr || '??'}kbps`
-      : `${f.ext} - ${f.resolution || '??'}p`;
+    opt.textContent = f.resolution ? `${f.ext} - ${f.resolution}` : `${f.ext} - ${f.abr || '??'}kbps`;
     quality.appendChild(opt);
   });
 
@@ -46,8 +48,6 @@ urlInput.addEventListener('input', () => {
   clearTimeout(timeout);
   timeout = setTimeout(fetchFormats, 800);
 });
-
-typeInput.addEventListener('change', fetchFormats);
 
 document.getElementById('download').onclick = () => {
   const url = document.getElementById('quality').value;
