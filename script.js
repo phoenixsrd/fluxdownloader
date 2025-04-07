@@ -1,9 +1,12 @@
-async function getFormats() {
+document.getElementById('url').addEventListener('change', fetchFormats);
+
+async function fetchFormats() {
   const url = document.getElementById('url').value;
-  const resultsDiv = document.getElementById('results');
-  const infoDiv = document.getElementById('videoInfo');
-  resultsDiv.innerHTML = 'Carregando...';
-  infoDiv.innerHTML = '';
+  const quality = document.getElementById('quality');
+  const preview = document.getElementById('preview');
+  quality.innerHTML = '';
+  preview.innerHTML = '';
+  quality.style.display = 'none';
 
   const res = await fetch('/formats', {
     method: 'POST',
@@ -12,42 +15,29 @@ async function getFormats() {
   });
 
   const data = await res.json();
-  resultsDiv.innerHTML = '';
+  if (data.error) return alert(data.error);
 
-  if (data.error) {
-    resultsDiv.innerHTML = `<p>Erro: ${data.error}</p>`;
-    return;
-  }
+  preview.innerHTML = `
+    <h3>${data.title}</h3>
+    <img src="${data.thumbnail}" />
+    <p>Duração: ${data.duration}</p>
+  `;
 
-  if (data.videoInfo) {
-    const { title, duration, thumbnail } = data.videoInfo;
-    infoDiv.innerHTML = `
-      <img src="${thumbnail}" alt="Thumbnail">
-      <h2>${title}</h2>
-      <p>Duração: ${duration}</p>
-    `;
-  }
-
-  if (!data.formats || data.formats.length === 0) {
-    resultsDiv.innerHTML = '<p>Nenhuma Qualidade Encontrada.</p>';
-    return;
-  }
-
-  data.formats.forEach(format => {
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.innerHTML = `
-      <span>${format.format_note || format.format_id} - ${format.ext.toUpperCase()} (${format.resolution || 'Áudio'})</span>
-      <a href="${format.url}" target="_blank">Baixar</a>
-    `;
-    resultsDiv.appendChild(div);
+  data.formats.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify(f);
+    opt.textContent = `${f.ext} - ${f.resolution || '??'}p`;
+    quality.appendChild(opt);
   });
 
-  const mp3 = document.createElement('div');
-  mp3.className = 'item';
-  mp3.innerHTML = `
-    <span>Baixar Como MP3</span>
-    <a href="/download-mp3?url=${encodeURIComponent(url)}" target="_blank">MP3</a>
-  `;
-  resultsDiv.appendChild(mp3);
+  quality.style.display = 'inline-block';
+  document.getElementById('download').style.display = 'inline-block';
+  preview.dataset.title = data.title;
 }
+
+document.getElementById('download').onclick = () => {
+  const selected = JSON.parse(document.getElementById('quality').value);
+  const title = document.getElementById('preview').dataset.title || 'video';
+  const url = `/download?url=${encodeURIComponent(selected.url)}&title=${encodeURIComponent(title)}&ext=${selected.ext}`;
+  window.open(url, '_blank');
+};

@@ -5,78 +5,52 @@
   <title>Flux Downloader</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #121212;
-      color: #fff;
-      padding: 2rem;
+      font-family: sans-serif;
+      background: #0f172a;
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 2rem;
     }
     h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: #00e5ff;
+      color: #60a5fa;
     }
     input, button {
-      padding: 1rem;
+      padding: 0.6rem;
+      margin: 0.5rem;
       border-radius: 8px;
       border: none;
-      margin: 0.5rem;
-      font-size: 1rem;
-    }
-    input {
-      width: 100%;
-      max-width: 600px;
+      font-size: 16px;
     }
     button {
-      background-color: #00e5ff;
-      color: #000;
+      background-color: #2563eb;
+      color: white;
       cursor: pointer;
-      font-weight: bold;
     }
-    .results, #videoInfo {
-      width: 100%;
-      max-width: 700px;
-      margin-top: 2rem;
+    button:hover {
+      background-color: #1e40af;
     }
-    .item {
-      background-color: #1e1e1e;
-      margin: 0.5rem 0;
-      padding: 1rem;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    #preview {
+      margin-top: 1rem;
+      text-align: center;
     }
-    .item span {
-      color: #ddd;
+    img {
+      max-width: 200px;
+      border-radius: 12px;
     }
-    .item a {
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      background-color: #00e5ff;
-      color: #000;
-      border-radius: 6px;
-      font-weight: bold;
-    }
-    #videoInfo img {
-      max-width: 300px;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-    #videoInfo h2 {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
+    select {
+      margin-top: 1rem;
+      padding: 0.5rem;
     }
   </style>
 </head>
 <body>
   <h1>Flux Downloader</h1>
-  <input id="url" type="text" placeholder="Cole o link do vídeo ou playlist...">
-  <button onclick="getFormats()">Clique Para Ver As Qualidades Disponíveis</button>
-  <div id="videoInfo" style="text-align: center;"></div>
-  <div id="results" class="results"></div>
+  <input type="text" id="url" placeholder="Cole O Link Do Vídeo Do Youtube Aqui" size="50" />
+  <div id="preview"></div>
+  <select id="quality" style="display:none;"></select>
+  <button id="download" style="display:none;">Download</button>
   <script src="script.js"></script>
 </body>
 </html>
